@@ -1,0 +1,41 @@
+version: "3"
+
+networks:
+  my_network:
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    networks:
+      - my_network
+
+  backend:
+    build:
+      context: ./raspberrypi
+      dockerfile: ./docker/Dockerfile
+    environment:
+      MQTT_HOST: mosquitto
+    image: hiper2d/smart-home-backend:${IMAGE_TAG:-latest}
+    ports:
+      - "5002:5002"
+    depends_on:
+      - mosquitto
+    networks:
+      - my_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ./docker/Dockerfile
+    image: hiper2d/smart-home-frontend:${IMAGE_TAG:-latest}
+    ports:
+      - "8080:80"
+    restart: always
+    depends_on:
+      - backend
+    networks:
+      - my_network
